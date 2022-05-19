@@ -1,0 +1,10 @@
+{
+  "icon": "docker.svg",
+  "ui": {
+    "dashboard-tab": {
+      "title": "Dockerfile Linter",
+      "src": "index.html",
+      "root": "ui"
+    }
+  }
+}
