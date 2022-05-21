@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { DataGrid } from "@mui/x-data-grid";
 import { DockerMuiThemeProvider } from "@docker/docker-mui-theme";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { docco } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "./App.css";
 import Header from "./Header.tsx";
 
@@ -34,7 +34,33 @@ function App() {
   const [dockerfilePath, setDockerfilePath] = React.useState("");
   const [dockerfileContent, setDockerfileContent] = React.useState(undefined);
   const [hints, setHints] = React.useState([]);
+  const [mode, setMode] = useState("light");
   const ddClient = useDockerDesktopClient();
+
+  useEffect(() => {
+    // Add listener to update styles
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", (e) => {
+        console.log(e.matches);
+        setMode(e.matches ? "dark" : "light");
+      });
+
+    // Setup dark/light mode for the first time
+    setMode(
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+    );
+    console.log(window.matchMedia("(prefers-color-scheme: dark)"));
+
+    // Remove listener
+    return () => {
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .removeEventListener("change", () => {});
+    };
+  }, []);
 
   const lint = () => {
     ddClient.docker.cli
@@ -130,7 +156,7 @@ function App() {
         {dockerfileContent && (
           <SyntaxHighlighter
             language="Dockerfile"
-            style={docco}
+            style={mode == "light" ? vs : vs2015}
             showLineNumbers
             startingLineNumber={1}
             wrapLines
@@ -146,9 +172,9 @@ function App() {
                   break;
                 }
               }
-              let backgroundColor = undefined;
+              let color = undefined;
               if (lhint !== undefined) {
-                backgroundColor = levelColors[lhint.level];
+                color = levelColors[lhint.level];
               }
 
               if (special) {
@@ -156,7 +182,10 @@ function App() {
                   style: {
                     display: "block",
                     cursor: "pointer",
-                    backgroundColor: backgroundColor ?? "none",
+                    // color: color ?? "none",
+                    borderLeft: color,
+                    borderLeftStyle: "solid",
+                    borderWidth: "thick",
                   },
                   onClick() {
                     let msg = "";
@@ -169,7 +198,7 @@ function App() {
                   },
                 };
               } else {
-                return { style: { class: "classnamefoo" } };
+                return { style: { paddingLeft: "5px" } };
               }
             }}
           >
