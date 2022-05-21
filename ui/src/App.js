@@ -2,6 +2,11 @@ import React, { useEffect, useState } from "react";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
 import { DataGrid } from "@mui/x-data-grid";
+import Chip from "@mui/material/Chip";
+import ErrorIcon from "@mui/icons-material/Error";
+import WarningIcon from "@mui/icons-material/Warning";
+import InfoIcon from "@mui/icons-material/Info";
+import FormatColorFillIcon from "@mui/icons-material/FormatColorFill";
 import { DockerMuiThemeProvider } from "@docker/docker-mui-theme";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SyntaxHighlighter from "react-syntax-highlighter";
@@ -22,11 +27,37 @@ const levelColors = {
   style: "grey",
 };
 
+const levelIcons = {
+  error: <ErrorIcon />,
+  warning: <WarningIcon />,
+  info: <InfoIcon />,
+  style: <FormatColorFillIcon />,
+};
+
+const levelChipColorAttr = {
+  error: "error",
+  warning: "warning",
+  info: "info",
+  style: "default",
+};
+
 const columns = [
-  { field: "id", headerName: "ID", width: 70 },
-  { field: "line", headerName: "Line", width: 130 },
+  { field: "id", headerName: "ID", width: 60 },
+  { field: "line", headerName: "Line", width: 60 },
   { field: "code", headerName: "Code", width: 130 },
-  { field: "level", headerName: "Level", width: 130 },
+  {
+    field: "level",
+    headerName: "Level",
+    width: 130,
+    renderCell: (params) => (
+      <Chip
+        icon={levelIcons[params.row.level]}
+        label={params.row.level}
+        color={levelChipColorAttr[params.row.level]}
+        variant="outlined"
+      />
+    ),
+  },
   { field: "message", headerName: "Message", width: 630 },
 ];
 
@@ -42,7 +73,6 @@ function App() {
     window
       .matchMedia("(prefers-color-scheme: dark)")
       .addEventListener("change", (e) => {
-        console.log(e.matches);
         setMode(e.matches ? "dark" : "light");
       });
 
@@ -52,7 +82,6 @@ function App() {
         ? "dark"
         : "light"
     );
-    console.log(window.matchMedia("(prefers-color-scheme: dark)"));
 
     // Remove listener
     return () => {
