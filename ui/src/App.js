@@ -13,6 +13,7 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "./App.css";
 import Header from "./Header.tsx";
+import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const client = createDockerDesktopClient();
 
@@ -183,56 +184,60 @@ function App() {
           Select Dockerfile
         </Button>
         {dockerfileContent && (
-          <SyntaxHighlighter
-            language="Dockerfile"
-            style={mode == "light" ? vs : vs2015}
-            showLineNumbers
-            startingLineNumber={1}
-            wrapLines
-            customStyle={{ textAlign: "left" }}
-            lineProps={(lineNumber) => {
-              let special = false;
-              let lhint = undefined;
-              for (let index = 0; index < hints.length; index++) {
-                const hint = hints[index];
-                if (lineNumber === hint.line) {
-                  lhint = hint;
-                  special = true;
-                  break;
+          <>
+            <CopyToClipboardButton dockerfileContent={dockerfileContent} />
+
+            <SyntaxHighlighter
+              language="Dockerfile"
+              style={mode == "light" ? vs : vs2015}
+              showLineNumbers
+              startingLineNumber={1}
+              wrapLines
+              customStyle={{ textAlign: "left", overflowX: "clip" }}
+              lineProps={(lineNumber) => {
+                let special = false;
+                let lhint = undefined;
+                for (let index = 0; index < hints.length; index++) {
+                  const hint = hints[index];
+                  if (lineNumber === hint.line) {
+                    lhint = hint;
+                    special = true;
+                    break;
+                  }
                 }
-              }
-              let color = undefined;
-              if (lhint !== undefined) {
-                color = levelColors[lhint.level];
-              }
+                let color = undefined;
+                if (lhint !== undefined) {
+                  color = levelColors[lhint.level];
+                }
 
-              if (special) {
-                return {
-                  style: {
-                    display: "block",
-                    cursor: "pointer",
-                    // color: color ?? "none",
-                    borderLeft: color,
-                    borderLeftStyle: "solid",
-                    borderWidth: "thick",
-                  },
-                  onClick() {
-                    let msg = "";
-                    const msgs = getHintMessagesByLineNumber(lineNumber);
-                    msgs.forEach((element) => {
-                      msg = msg + "\n" + element + "\n";
-                    });
+                if (special) {
+                  return {
+                    style: {
+                      display: "block",
+                      cursor: "pointer",
+                      // color: color ?? "none",
+                      borderLeft: color,
+                      borderLeftStyle: "solid",
+                      borderWidth: "thick",
+                    },
+                    onClick() {
+                      let msg = "";
+                      const msgs = getHintMessagesByLineNumber(lineNumber);
+                      msgs.forEach((element) => {
+                        msg = msg + "\n" + element + "\n";
+                      });
 
-                    alert(`Line ${lineNumber} - (${lhint.level})\n\n${msg}`);
-                  },
-                };
-              } else {
-                return { style: { paddingLeft: "5px" } };
-              }
-            }}
-          >
-            {dockerfileContent}
-          </SyntaxHighlighter>
+                      alert(`Line ${lineNumber} - (${lhint.level})\n\n${msg}`);
+                    },
+                  };
+                } else {
+                  return { style: { paddingLeft: "5px" } };
+                }
+              }}
+            >
+              {dockerfileContent}
+            </SyntaxHighlighter>
+          </>
         )}
         <div style={{ height: 400, width: "100%" }}>
           {hints.length > 0 && (
