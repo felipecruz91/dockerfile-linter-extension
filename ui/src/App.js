@@ -15,6 +15,13 @@ function useDockerDesktopClient() {
   return client;
 }
 
+const levelColors = {
+  error: "red",
+  warning: "orange",
+  info: "blue",
+  style: "grey",
+};
+
 const columns = [
   { field: "id", headerName: "ID", width: 70 },
   { field: "line", headerName: "Line", width: 130 },
@@ -94,6 +101,17 @@ function App() {
       });
   };
 
+  const getHintMessagesByLineNumber = (lineNumber) => {
+    let msgs = [];
+    for (let index = 0; index < hints.length; index++) {
+      const hint = hints[index];
+      if (lineNumber === hint.line) {
+        msgs.push(hint.message);
+      }
+    }
+    return msgs;
+  };
+
   useEffect(() => {
     if (dockerfileContent !== undefined || dockerfileContent !== "") {
       lint();
@@ -117,6 +135,43 @@ function App() {
             startingLineNumber={1}
             wrapLines
             customStyle={{ textAlign: "left" }}
+            lineProps={(lineNumber) => {
+              let special = false;
+              let lhint = undefined;
+              for (let index = 0; index < hints.length; index++) {
+                const hint = hints[index];
+                if (lineNumber === hint.line) {
+                  lhint = hint;
+                  special = true;
+                  break;
+                }
+              }
+              let backgroundColor = undefined;
+              if (lhint !== undefined) {
+                backgroundColor = levelColors[lhint.level];
+              }
+
+              if (special) {
+                return {
+                  style: {
+                    display: "block",
+                    cursor: "pointer",
+                    backgroundColor: backgroundColor ?? "none",
+                  },
+                  onClick() {
+                    let msg = "";
+                    const msgs = getHintMessagesByLineNumber(lineNumber);
+                    msgs.forEach((element) => {
+                      msg = msg + "\n" + element + "\n";
+                    });
+
+                    alert(`Line ${lineNumber} - (${lhint.level})\n\n${msg}`);
+                  },
+                };
+              } else {
+                return { style: { class: "classnamefoo" } };
+              }
+            }}
           >
             {dockerfileContent}
           </SyntaxHighlighter>
