@@ -70,12 +70,20 @@ function App() {
   const [dockerfileContent, setDockerfileContent] = React.useState(undefined);
   const [dockerfileModifiedOnDisk, setDockerfileModifiedOnDisk] =
     React.useState(false);
+  const [dockerfileSavedOnVolume, setDockerfileSavedOnVolume] =
+    React.useState(false);
   const [dockerfileOpened, setDockerfileOpened] = React.useState(false);
   const [linting, setLinting] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
   const [hints, setHints] = React.useState([]);
   const [mode, setMode] = useState("light");
   const ddClient = useDockerDesktopClient();
+
+  useEffect(() => {
+    ddClient.docker.cli.exec("volume", ["create", "my-vol"]).then((output) => {
+      console.log(output);
+    });
+  }, []);
 
   useEffect(() => {
     // Add listener to update styles
@@ -101,25 +109,25 @@ function App() {
   }, []);
 
   const lint = () => {
-    setLinting(true);
-
-    if (dockerfilePath === undefined || dockerfilePath === "") {
-      console.warn("dockerfilePath not set:", dockerfilePath);
+    if (!dockerfileSavedOnVolume) {
+      console.warn("dockerfileSavedOnVolume:", dockerfileSavedOnVolume);
       setLinting(false);
       return;
     }
+
+    setLinting(true);
 
     ddClient.docker.cli
       .exec("run", [
         "--rm",
         "-i",
+        "-v",
+        "my-vol:/tmp",
         "hadolint/hadolint",
         "hadolint",
         "-f",
         "json",
-        "-",
-        "<",
-        dockerfilePath,
+        "/tmp/Dockerfile",
       ])
       .then(() => {
         ddClient.desktopUI.toast.success("🎉 All good!");
@@ -127,6 +135,7 @@ function App() {
         setLinting(false);
       })
       .catch((result) => {
+        console.log("result", result);
         if (result.stdout !== "") {
           const jsonOutput = JSON.parse(result.stdout);
 
@@ -156,8 +165,9 @@ function App() {
         if (result.canceled) {
           return;
         }
-        setDockerfilePath(result.filePaths[0]);
 
+        // Read Dockerfile content from file on disk
+        console.log("Reading Dockerfile content from file on disk...");
         ddClient.docker.cli
           .exec("run", [
             "--rm",
@@ -168,13 +178,37 @@ function App() {
             "-c",
             '"cat Dockerfile"',
           ])
-          .then((catOutput) => {
-            setDockerfileContent(catOutput.stdout);
+          .then((result) => {
+            console.log(result.stdout);
+            setDockerfileContent(result.stdout);
             setDockerfileOpened(!dockerfileOpened);
+
+            console.log(
+              "Dockerfile content loaded on memory. Saving it to a volume..."
+            );
+            ddClient.docker.cli
+              .exec("run", [
+                "--rm",
+                "-v",
+                "my-vol:/tmp",
+                "alpine",
+                "/bin/sh",
+                "-c",
+                `"touch /tmp/Dockerfile && echo '${result.stdout}' > /tmp/Dockerfile && cat /tmp/Dockerfile"`,
+              ])
+              .then((result) => {
+                console.log(result);
+                // setDockerfileSavedOnVolume(!dockerfileSavedOnVolume);
+                setDockerfileSavedOnVolume(true);
+              })
+              .catch((error) => {
+                console.error(error);
+                ddClient.desktopUI.toast.error(error);
+              });
+          })
+          .catch((error) => {
+            ddClient.desktopUI.toast.error(error);
           });
-      })
-      .catch((err) => {
-        ddClient.desktopUI.toast.error(err);
       });
   };
 
@@ -189,13 +223,6 @@ function App() {
     return msgs;
   };
 
-  // useEffect(() => {
-  //   if (dockerfileContent !== undefined || dockerfileContent !== "") {
-  //     console.log("linting by useEffect...");
-  //     lint();
-  //   }
-  // }, [dockerfileContent, dockerfileModifiedOnDisk]);
-
   useEffect(() => {
     console.log("useEffect");
     if (dockerfileContent !== undefined) {
@@ -203,46 +230,27 @@ function App() {
       console.log("linting by useEffect...");
       lint();
     }
-  }, [dockerfileOpened, dockerfileModifiedOnDisk]);
+  }, [dockerfileOpened, dockerfileSavedOnVolume]);
 
   const reload = () => {
     console.log("reloading...");
     setLinting(true);
-    // write file to disk
-    // docker run --name create-dockerfile alpine /bin/sh -c "touch ./Dockerfile && echo 'FROM ubuntu:latest' >> Dockerfile && cat Dockerfile"
+    // write Dockerfile to volume
+    console.log("updating Dockerfile with content:", dockerfileContent);
     ddClient.docker.cli
       .exec("run", [
-        "--name",
-        "create-dockerfile",
+        "--rm",
+        "-v",
+        "my-vol:/tmp",
         "alpine",
         "/bin/sh",
         "-c",
-        `"touch ./Dockerfile && echo '${dockerfileContent}' >> Dockerfile && cat Dockerfile"`,
+        `"touch /tmp/Dockerfile && echo '${dockerfileContent}' > /tmp/Dockerfile && cat /tmp/Dockerfile"`,
       ])
       .then((result) => {
         console.log(result);
-        // docker cp create-dockerfile:/Dockerfile /tmp/Dockerfile
-        const tmpPath = "/tmp/Dockerfile";
-        ddClient.docker.cli
-          .exec("cp", ["create-dockerfile:/Dockerfile", tmpPath])
-          .then((result) => {
-            console.log(result);
-            // docker rm create-dockerfile
-            ddClient.docker.cli
-              .exec("rm", ["create-dockerfile"])
-              .then((result) => {
-                console.log(result);
-                console.log("tmp path:", tmpPath);
-                setDockerfilePath(tmpPath);
-                setDockerfileModifiedOnDisk(!dockerfileModifiedOnDisk);
-              })
-              .catch((error) => {
-                console.error(error);
-              });
-          })
-          .catch((error) => {
-            console.error(error);
-          });
+        // setDockerfileModifiedOnDisk(!dockerfileModifiedOnDisk);
+        setDockerfileSavedOnVolume(!dockerfileSavedOnVolume);
       })
       .catch((error) => {
         console.error(error);
@@ -333,13 +341,10 @@ function App() {
                             style: {
                               display: "block",
                               cursor: "pointer",
-                              // color: color ?? "none",
                               borderColor: color,
                               borderLeftStyle: "solid",
                               borderWidth: "thick",
                               flexWrap: "wrap",
-
-                              // backgroundColor: "#fce5cd",
                             },
                             onClick() {
                               let msg = "";
