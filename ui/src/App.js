@@ -11,6 +11,7 @@ import { DockerMuiThemeProvider } from "@docker/docker-mui-theme";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import TextareaAutosize from "@mui/material/TextareaAutosize";
 import "./App.css";
 import Header from "./Header.tsx";
 import CopyToClipboardButton from "./CopyToClipboardButton";
@@ -65,6 +66,8 @@ const columns = [
 function App() {
   const [dockerfilePath, setDockerfilePath] = React.useState("");
   const [dockerfileContent, setDockerfileContent] = React.useState(undefined);
+  const [dockerfileModifiedOnDisk, setDockerfileModifiedOnDisk] =
+    React.useState(false);
   const [hints, setHints] = React.useState([]);
   const [mode, setMode] = useState("light");
   const ddClient = useDockerDesktopClient();
@@ -93,6 +96,11 @@ function App() {
   }, []);
 
   const lint = () => {
+    if (dockerfilePath == undefined || dockerfilePath == "") {
+      console.warn("dockerfilePath not set:", dockerfilePath);
+      return;
+    }
+
     ddClient.docker.cli
       .exec("run", [
         "--rm",
@@ -107,6 +115,7 @@ function App() {
       ])
       .then(() => {
         ddClient.desktopUI.toast.success("🎉 All good!");
+        setHints([]);
       })
       .catch((result) => {
         if (result.stdout !== "") {
@@ -168,12 +177,63 @@ function App() {
     return msgs;
   };
 
+  // useEffect(() => {
+  //   if (dockerfileContent !== undefined || dockerfileContent !== "") {
+  //     console.log("linting by useEffect...");
+  //     lint();
+  //   }
+  // }, [dockerfileContent, dockerfileModifiedOnDisk]);
+
   useEffect(() => {
+    console.log("useEffect");
     if (dockerfileContent !== undefined || dockerfileContent !== "") {
+      console.log("linting by useEffect...");
       lint();
     }
-  }, [dockerfileContent]);
+  }, [dockerfileModifiedOnDisk]);
 
+  const reload = () => {
+    console.log("reloading...");
+    // write file to disk
+    // docker run --name create-dockerfile alpine /bin/sh -c "touch ./Dockerfile && echo 'FROM ubuntu:latest' >> Dockerfile && cat Dockerfile"
+    ddClient.docker.cli
+      .exec("run", [
+        "--name",
+        "create-dockerfile",
+        "alpine",
+        "/bin/sh",
+        "-c",
+        `"touch ./Dockerfile && echo '${dockerfileContent}' >> Dockerfile && cat Dockerfile"`,
+      ])
+      .then((result) => {
+        console.log(result);
+        // docker cp create-dockerfile:/Dockerfile /tmp/Dockerfile
+        const tmpPath = "/tmp/Dockerfile";
+        ddClient.docker.cli
+          .exec("cp", ["create-dockerfile:/Dockerfile", tmpPath])
+          .then((result) => {
+            console.log(result);
+            // docker rm create-dockerfile
+            ddClient.docker.cli
+              .exec("rm", ["create-dockerfile"])
+              .then((result) => {
+                console.log(result);
+                console.log("tmp path:", tmpPath);
+                setDockerfilePath(tmpPath);
+                setDockerfileModifiedOnDisk(!dockerfileModifiedOnDisk);
+              })
+              .catch((error) => {
+                console.error(error);
+              });
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
   return (
     <DockerMuiThemeProvider>
       <CssBaseline />
@@ -182,6 +242,21 @@ function App() {
 
         <Button variant="contained" onClick={openDockerfile}>
           Select Dockerfile
+        </Button>
+        <TextareaAutosize
+          aria-label="empty textarea"
+          placeholder="FROM ubuntu:latest"
+          minRows={10}
+          maxRows={20}
+          value={dockerfileContent}
+          onChange={(e) => {
+            setDockerfileContent(e.target.value);
+          }}
+          // defaultValue="FROM ubuntu:latest"
+          style={{ width: 200 }}
+        />
+        <Button variant="contained" onClick={reload}>
+          Reload
         </Button>
         {dockerfileContent && (
           <>
