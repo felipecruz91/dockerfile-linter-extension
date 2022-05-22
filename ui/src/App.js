@@ -13,6 +13,7 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import TextareaAutosize from "@mui/material/TextareaAutosize";
 import Grid from "@mui/material/Grid";
+import Skeleton from "@mui/material/Skeleton";
 import "./App.css";
 import Header from "./Header.tsx";
 import CopyToClipboardButton from "./CopyToClipboardButton";
@@ -101,7 +102,7 @@ function App() {
   const lint = () => {
     setLinting(true);
 
-    if (dockerfilePath == undefined || dockerfilePath == "") {
+    if (dockerfilePath === undefined || dockerfilePath === "") {
       console.warn("dockerfilePath not set:", dockerfilePath);
       setLinting(false);
       return;
@@ -195,7 +196,8 @@ function App() {
 
   useEffect(() => {
     console.log("useEffect");
-    if (dockerfileContent !== undefined || dockerfileContent !== "") {
+    if (dockerfileContent !== undefined) {
+      console.log("dockerfileContent", dockerfileContent);
       console.log("linting by useEffect...");
       lint();
     }
@@ -282,62 +284,82 @@ function App() {
           <Grid item xs={6}>
             {dockerfileContent && (
               <>
-                <CopyToClipboardButton dockerfileContent={dockerfileContent} />
+                {linting ? (
+                  <Skeleton
+                    variant="rectangular"
+                    width={"100%"}
+                    height={"100%"}
+                  />
+                ) : (
+                  <>
+                    {" "}
+                    <CopyToClipboardButton
+                      dockerfileContent={dockerfileContent}
+                    />
+                    <SyntaxHighlighter
+                      language="Dockerfile"
+                      style={mode === "light" ? vs : vs2015}
+                      showLineNumbers
+                      startingLineNumber={1}
+                      wrapLines
+                      wrapLongLines
+                      customStyle={{
+                        textAlign: "left",
+                        overflowX: "clip",
+                      }}
+                      lineProps={(lineNumber) => {
+                        let special = false;
+                        let lhint = undefined;
+                        for (let index = 0; index < hints.length; index++) {
+                          const hint = hints[index];
+                          if (lineNumber === hint.line) {
+                            lhint = hint;
+                            special = true;
+                            break;
+                          }
+                        }
+                        let color = undefined;
+                        if (lhint !== undefined) {
+                          color = levelColors[lhint.level];
+                        }
 
-                <SyntaxHighlighter
-                  language="Dockerfile"
-                  style={mode == "light" ? vs : vs2015}
-                  showLineNumbers
-                  startingLineNumber={1}
-                  wrapLines
-                  wrapLongLines
-                  customStyle={{ textAlign: "left", overflowX: "clip" }}
-                  lineProps={(lineNumber) => {
-                    let special = false;
-                    let lhint = undefined;
-                    for (let index = 0; index < hints.length; index++) {
-                      const hint = hints[index];
-                      if (lineNumber === hint.line) {
-                        lhint = hint;
-                        special = true;
-                        break;
-                      }
-                    }
-                    let color = undefined;
-                    if (lhint !== undefined) {
-                      color = levelColors[lhint.level];
-                    }
+                        if (special) {
+                          return {
+                            style: {
+                              display: "block",
+                              cursor: "pointer",
+                              // color: color ?? "none",
+                              borderLeft: color,
+                              borderLeftStyle: "solid",
+                              borderWidth: "thick",
+                              flexWrap: "wrap",
 
-                    if (special) {
-                      return {
-                        style: {
-                          display: "block",
-                          cursor: "pointer",
-                          // color: color ?? "none",
-                          borderLeft: color,
-                          borderLeftStyle: "solid",
-                          borderWidth: "thick",
-                          // backgroundColor: "#fce5cd",
-                        },
-                        onClick() {
-                          let msg = "";
-                          const msgs = getHintMessagesByLineNumber(lineNumber);
-                          msgs.forEach((element) => {
-                            msg = msg + "\n" + element + "\n";
-                          });
+                              // backgroundColor: "#fce5cd",
+                            },
+                            onClick() {
+                              let msg = "";
+                              const msgs =
+                                getHintMessagesByLineNumber(lineNumber);
+                              msgs.forEach((element) => {
+                                msg = msg + "\n" + element + "\n";
+                              });
 
-                          alert(
-                            `Line ${lineNumber} - (${lhint.level})\n\n${msg}`
-                          );
-                        },
-                      };
-                    } else {
-                      return { style: { paddingLeft: "5px" } };
-                    }
-                  }}
-                >
-                  {dockerfileContent}
-                </SyntaxHighlighter>
+                              alert(
+                                `Line ${lineNumber} - (${lhint.level})\n\n${msg}`
+                              );
+                            },
+                          };
+                        } else {
+                          return {
+                            style: { paddingLeft: "5px", flexWrap: "wrap" },
+                          };
+                        }
+                      }}
+                    >
+                      {dockerfileContent}
+                    </SyntaxHighlighter>
+                  </>
+                )}
               </>
             )}
           </Grid>
@@ -351,6 +373,7 @@ function App() {
               pageSize={5}
               rowsPerPageOptions={[5]}
               checkboxSelection
+              loading={linting}
             />
           )}
         </div>
