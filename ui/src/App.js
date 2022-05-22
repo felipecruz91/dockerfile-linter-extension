@@ -11,7 +11,7 @@ import { DockerMuiThemeProvider } from "@docker/docker-mui-theme";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import TextareaAutosize from "@mui/material/TextareaAutosize";
+import TextField from "@mui/material/TextField";
 import Grid from "@mui/material/Grid";
 import Skeleton from "@mui/material/Skeleton";
 import "./App.css";
@@ -72,6 +72,7 @@ function App() {
     React.useState(false);
   const [dockerfileOpened, setDockerfileOpened] = React.useState(false);
   const [linting, setLinting] = React.useState(false);
+  const [dirty, setDirty] = React.useState(false);
   const [hints, setHints] = React.useState([]);
   const [mode, setMode] = useState("light");
   const ddClient = useDockerDesktopClient();
@@ -141,6 +142,7 @@ function App() {
 
           setHints(hs);
           setLinting(false);
+          setDirty(false);
         }
       });
   };
@@ -267,18 +269,18 @@ function App() {
 
         <Grid container spacing={2} mt={"8px"} mb={"8px"}>
           <Grid item xs={6}>
-            <TextareaAutosize
-              aria-label="empty textarea"
+            <TextField
+              id="outlined-multiline-flexible"
               placeholder="FROM ubuntu:latest"
               spellCheck="false"
+              multiline
               minRows={10}
-              // maxRows={20}
               value={dockerfileContent}
               onChange={(e) => {
+                setDirty(true);
                 setDockerfileContent(e.target.value);
               }}
-              // defaultValue="FROM ubuntu:latest"
-              style={{ width: "100%", height: "100%" }}
+              fullWidth
             />
           </Grid>
           <Grid item xs={6}>
@@ -322,6 +324,9 @@ function App() {
                         if (lhint !== undefined) {
                           color = levelColors[lhint.level];
                         }
+                        if (dirty) {
+                          color = "grey";
+                        }
 
                         if (special) {
                           return {
@@ -329,7 +334,7 @@ function App() {
                               display: "block",
                               cursor: "pointer",
                               // color: color ?? "none",
-                              borderLeft: color,
+                              borderColor: color,
                               borderLeftStyle: "solid",
                               borderWidth: "thick",
                               flexWrap: "wrap",
@@ -351,7 +356,10 @@ function App() {
                           };
                         } else {
                           return {
-                            style: { paddingLeft: "5px", flexWrap: "wrap" },
+                            style: {
+                              paddingLeft: "5px",
+                              flexWrap: "wrap",
+                            },
                           };
                         }
                       }}
