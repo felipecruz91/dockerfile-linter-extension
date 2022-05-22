@@ -12,6 +12,7 @@ import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import TextareaAutosize from "@mui/material/TextareaAutosize";
+import Grid from "@mui/material/Grid";
 import "./App.css";
 import Header from "./Header.tsx";
 import CopyToClipboardButton from "./CopyToClipboardButton";
@@ -249,80 +250,99 @@ function App() {
       <div className="">
         <Header />
 
-        <Button variant="contained" onClick={openDockerfile}>
-          Select Dockerfile
-        </Button>
-        <TextareaAutosize
-          aria-label="empty textarea"
-          placeholder="FROM ubuntu:latest"
-          minRows={10}
-          maxRows={20}
-          value={dockerfileContent}
-          onChange={(e) => {
-            setDockerfileContent(e.target.value);
-          }}
-          // defaultValue="FROM ubuntu:latest"
-          style={{ width: 200 }}
-        />
-        <Button variant="contained" disabled={linting} onClick={reload}>
-          Lint
-        </Button>
-        {dockerfileContent && (
-          <>
-            <CopyToClipboardButton dockerfileContent={dockerfileContent} />
+        <Grid container spacing={2}>
+          <Grid item>
+            <Button variant="contained" onClick={openDockerfile}>
+              Select Dockerfile
+            </Button>
+          </Grid>
+          <Grid item>
+            <Button variant="contained" disabled={linting} onClick={reload}>
+              Lint
+            </Button>
+          </Grid>
+        </Grid>
 
-            <SyntaxHighlighter
-              language="Dockerfile"
-              style={mode == "light" ? vs : vs2015}
-              showLineNumbers
-              startingLineNumber={1}
-              wrapLines
-              customStyle={{ textAlign: "left", overflowX: "clip" }}
-              lineProps={(lineNumber) => {
-                let special = false;
-                let lhint = undefined;
-                for (let index = 0; index < hints.length; index++) {
-                  const hint = hints[index];
-                  if (lineNumber === hint.line) {
-                    lhint = hint;
-                    special = true;
-                    break;
-                  }
-                }
-                let color = undefined;
-                if (lhint !== undefined) {
-                  color = levelColors[lhint.level];
-                }
-
-                if (special) {
-                  return {
-                    style: {
-                      display: "block",
-                      cursor: "pointer",
-                      // color: color ?? "none",
-                      borderLeft: color,
-                      borderLeftStyle: "solid",
-                      borderWidth: "thick",
-                    },
-                    onClick() {
-                      let msg = "";
-                      const msgs = getHintMessagesByLineNumber(lineNumber);
-                      msgs.forEach((element) => {
-                        msg = msg + "\n" + element + "\n";
-                      });
-
-                      alert(`Line ${lineNumber} - (${lhint.level})\n\n${msg}`);
-                    },
-                  };
-                } else {
-                  return { style: { paddingLeft: "5px" } };
-                }
+        <Grid container spacing={2} mt={"8px"} mb={"8px"}>
+          <Grid item xs={6}>
+            <TextareaAutosize
+              aria-label="empty textarea"
+              placeholder="FROM ubuntu:latest"
+              spellCheck="false"
+              minRows={10}
+              // maxRows={20}
+              value={dockerfileContent}
+              onChange={(e) => {
+                setDockerfileContent(e.target.value);
               }}
-            >
-              {dockerfileContent}
-            </SyntaxHighlighter>
-          </>
-        )}
+              // defaultValue="FROM ubuntu:latest"
+              style={{ width: "100%", height: "100%" }}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            {dockerfileContent && (
+              <>
+                <CopyToClipboardButton dockerfileContent={dockerfileContent} />
+
+                <SyntaxHighlighter
+                  language="Dockerfile"
+                  style={mode == "light" ? vs : vs2015}
+                  showLineNumbers
+                  startingLineNumber={1}
+                  wrapLines
+                  wrapLongLines
+                  customStyle={{ textAlign: "left", overflowX: "clip" }}
+                  lineProps={(lineNumber) => {
+                    let special = false;
+                    let lhint = undefined;
+                    for (let index = 0; index < hints.length; index++) {
+                      const hint = hints[index];
+                      if (lineNumber === hint.line) {
+                        lhint = hint;
+                        special = true;
+                        break;
+                      }
+                    }
+                    let color = undefined;
+                    if (lhint !== undefined) {
+                      color = levelColors[lhint.level];
+                    }
+
+                    if (special) {
+                      return {
+                        style: {
+                          display: "block",
+                          cursor: "pointer",
+                          // color: color ?? "none",
+                          borderLeft: color,
+                          borderLeftStyle: "solid",
+                          borderWidth: "thick",
+                          // backgroundColor: "#fce5cd",
+                        },
+                        onClick() {
+                          let msg = "";
+                          const msgs = getHintMessagesByLineNumber(lineNumber);
+                          msgs.forEach((element) => {
+                            msg = msg + "\n" + element + "\n";
+                          });
+
+                          alert(
+                            `Line ${lineNumber} - (${lhint.level})\n\n${msg}`
+                          );
+                        },
+                      };
+                    } else {
+                      return { style: { paddingLeft: "5px" } };
+                    }
+                  }}
+                >
+                  {dockerfileContent}
+                </SyntaxHighlighter>
+              </>
+            )}
+          </Grid>
+        </Grid>
+
         <div style={{ height: 400, width: "100%" }}>
           {hints.length > 0 && (
             <DataGrid

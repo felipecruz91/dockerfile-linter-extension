@@ -16,7 +16,7 @@ const CopyToClipboardButton = (dockerfileContent) => {
       <IconButton
         onClick={handleClick}
         color="primary"
-        style={{ float: "right", marginTop: "50px" }}
+        style={{ float: "right", marginTop: "14px" }}
       >
         <ContentCopyIcon />
       </IconButton>
