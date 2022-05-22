@@ -46,7 +46,7 @@ const levelChipColorAttr = {
 };
 
 const columns = [
-  { field: "id", headerName: "ID", width: 60 },
+  { field: "id", headerName: "ID", width: 60, hide: true },
   { field: "line", headerName: "Line", width: 60 },
   { field: "code", headerName: "Code", width: 130 },
   {
