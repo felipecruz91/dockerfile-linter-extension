@@ -68,6 +68,8 @@ function App() {
   const [dockerfileContent, setDockerfileContent] = React.useState(undefined);
   const [dockerfileModifiedOnDisk, setDockerfileModifiedOnDisk] =
     React.useState(false);
+  const [dockerfileOpened, setDockerfileOpened] = React.useState(false);
+  const [linting, setLinting] = React.useState(false);
   const [hints, setHints] = React.useState([]);
   const [mode, setMode] = useState("light");
   const ddClient = useDockerDesktopClient();
@@ -96,8 +98,11 @@ function App() {
   }, []);
 
   const lint = () => {
+    setLinting(true);
+
     if (dockerfilePath == undefined || dockerfilePath == "") {
       console.warn("dockerfilePath not set:", dockerfilePath);
+      setLinting(false);
       return;
     }
 
@@ -116,6 +121,7 @@ function App() {
       .then(() => {
         ddClient.desktopUI.toast.success("🎉 All good!");
         setHints([]);
+        setLinting(false);
       })
       .catch((result) => {
         if (result.stdout !== "") {
@@ -132,6 +138,7 @@ function App() {
           });
 
           setHints(hs);
+          setLinting(false);
         }
       });
   };
@@ -159,6 +166,7 @@ function App() {
           ])
           .then((catOutput) => {
             setDockerfileContent(catOutput.stdout);
+            setDockerfileOpened(!dockerfileOpened);
           });
       })
       .catch((err) => {
@@ -190,10 +198,11 @@ function App() {
       console.log("linting by useEffect...");
       lint();
     }
-  }, [dockerfileModifiedOnDisk]);
+  }, [dockerfileOpened, dockerfileModifiedOnDisk]);
 
   const reload = () => {
     console.log("reloading...");
+    setLinting(true);
     // write file to disk
     // docker run --name create-dockerfile alpine /bin/sh -c "touch ./Dockerfile && echo 'FROM ubuntu:latest' >> Dockerfile && cat Dockerfile"
     ddClient.docker.cli
@@ -255,8 +264,8 @@ function App() {
           // defaultValue="FROM ubuntu:latest"
           style={{ width: 200 }}
         />
-        <Button variant="contained" onClick={reload}>
-          Reload
+        <Button variant="contained" disabled={linting} onClick={reload}>
+          Lint
         </Button>
         {dockerfileContent && (
           <>
