@@ -11,14 +11,14 @@ COPY ui /ui
 RUN npm run build
 
 FROM alpine
-LABEL org.opencontainers.image.title="dockerfile-linter-extension" \
+LABEL org.opencontainers.image.title="dockerfile-linter" \
     org.opencontainers.image.description="My awesome Docker extension" \
-    org.opencontainers.image.vendor="@felipecruz" \
+    org.opencontainers.image.vendor="Felipe Cruz" \
     com.docker.desktop.extension.api.version=">= 0.2.3" \
     com.docker.extension.screenshots="" \
-    com.docker.extension.detailed-description="" \
-    com.docker.extension.publisher-url="" \
-    com.docker.extension.additional-urls="" \
+    com.docker.extension.detailed-description="This extension aims to help you building best practice Docker images. It uses the Open Source project Hadolint to parse your Dockerfile and retrieve a list of suggestions based on a predefined set of rules to improve your Dockerfile."\
+    com.docker.extension.publisher-url="https://github.com/felipecruz91/dockerfile-linter-extension" \
+    com.docker.extension.additional-urls='[{"title":"Source code","url":"https://github.com/felipecruz91/dockerfile-linter-extension"}, {"title":"Feedback","url":"https://github.com/felipecruz91/dockerfile-linter-extension/issues"}, {"title":"Author","url":"https://twitter.com/felipecruz"}]' \
     com.docker.extension.changelog=""
 
 COPY metadata.json .
