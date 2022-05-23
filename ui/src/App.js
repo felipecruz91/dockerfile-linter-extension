@@ -66,10 +66,7 @@ const columns = [
 ];
 
 function App() {
-  const [dockerfilePath, setDockerfilePath] = React.useState("");
   const [dockerfileContent, setDockerfileContent] = React.useState(undefined);
-  const [dockerfileModifiedOnDisk, setDockerfileModifiedOnDisk] =
-    React.useState(false);
   const [dockerfileSavedOnVolume, setDockerfileSavedOnVolume] =
     React.useState(false);
   const [dockerfileOpened, setDockerfileOpened] = React.useState(false);
@@ -109,11 +106,11 @@ function App() {
   }, []);
 
   const lint = () => {
-    if (!dockerfileSavedOnVolume) {
-      console.warn("dockerfileSavedOnVolume:", dockerfileSavedOnVolume);
-      setLinting(false);
-      return;
-    }
+    // if (!dockerfileSavedOnVolume) {
+    //   console.warn("dockerfileSavedOnVolume:", dockerfileSavedOnVolume);
+    //   setLinting(false);
+    //   return;
+    // }
 
     setLinting(true);
 
@@ -199,7 +196,7 @@ function App() {
               .then((result) => {
                 console.log(result);
                 // setDockerfileSavedOnVolume(!dockerfileSavedOnVolume);
-                setDockerfileSavedOnVolume(true);
+                setDockerfileSavedOnVolume(!dockerfileSavedOnVolume);
               })
               .catch((error) => {
                 console.error(error);
@@ -302,7 +299,6 @@ function App() {
                   />
                 ) : (
                   <>
-                    {" "}
                     <CopyToClipboardButton
                       dockerfileContent={dockerfileContent}
                     />
